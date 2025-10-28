@@ -20,6 +20,8 @@ import {
 import { PerfilCard } from "../../components/NewUserPerfilCard/NewUserPerfilCards";
 import { Button } from "../../components/Button";
 import axios from "axios";
+import { formatCPF } from "../../utils/formatCPF";
+import { formatPhone } from "../../utils/formatPhone";
 
 export function NovoUsuario() {
   const navigate = useNavigate();
@@ -86,8 +88,6 @@ export function NovoUsuario() {
     fetchUnidades();
   }, []);
 
-  const onlyDigits = (v: string) => v.replace(/\D/g, "");
-
   const sanitizeEmail = (value: string) => {
     let v = value.trim().toLowerCase();
     v = v.replace(/\s+/g, "");
@@ -97,24 +97,6 @@ export function NovoUsuario() {
     return v.slice(0, 254);
   };
 
-  const formatCPF = (value: string) => {
-    const d = onlyDigits(value).slice(0, 11);
-    let out = d;
-    out = out.replace(/^(\d{3})(\d)/, "$1.$2");
-    out = out.replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
-    out = out.replace(/(\d{3})-(\d{1,2})$/, "$1-$2");
-    out = out.replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})$/, "$1.$2.$3-$4");
-    return out;
-  };
-
-  const formatPhone = (value: string) => {
-    const d = onlyDigits(value).slice(0, 11);
-    if (d.length <= 10) {
-      return d.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2");
-    } else {
-      return d.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
