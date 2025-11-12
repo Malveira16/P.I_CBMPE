@@ -357,8 +357,9 @@ export const UploadArea = styled.div`
   }
 `;
 
-/* Adicionado: Toggle switch simples (estilo liga/desliga) */
-export const ToggleSwitch = styled.button<{ active?: boolean }>`
+export const ToggleSwitch = styled.button.withConfig({
+  shouldForwardProp: (prop) => prop !== "active", // <--- aqui
+})<{ active?: boolean }>`
   width: 52px;
   height: 28px;
   background: ${(p) => (p.active ? "#16a34a" : "#e5e7eb")};
@@ -466,12 +467,14 @@ export const TableWrapper = styled.div`
     }
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 769px) {
     display: none;
   }
 `;
 
-export const UserCardWrapper = styled.div`
+
+
+export const MobileCardWrapper = styled.div`
   display: none;
 
   @media (max-width: 768px) {
@@ -481,7 +484,7 @@ export const UserCardWrapper = styled.div`
   }
 `;
 
-export const UserCard = styled(BoxInfo)`
+export const MobileCard = styled(BoxInfo)`
   display: flex;
   flex-direction: column;
   padding: 1rem;
@@ -763,6 +766,10 @@ export const SignatureBox = styled.div`
     border: 1px solid #ccc;
     border-radius: 6px;
     touch-action: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
 
   @media (max-width: 420px) {
@@ -810,6 +817,21 @@ export const ModalContent = styled.div`
   padding: 1rem;
   max-width: 95%;
   box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+
+  /* novo: evitar que o modal seja maior que a viewport e permitir scroll interno */
+  max-width: 900px;
+  width: 95%;
+  box-sizing: border-box;
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+
+  /* garantir que o canvas dentro do modal não dispare scroll/gestos do navegador */
+  canvas {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
 `;
 
 export const StatusAlert = styled.div<{ isOnline: boolean }>`
@@ -878,4 +900,3 @@ export const SavedFilterCard = styled.div`
     margin-top: 2px;
   }
 `;
-

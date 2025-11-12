@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -19,14 +20,16 @@ import {
   SavedFilterCard,
   MiniGrid,
   SavedFiltersBoxInfo,
-  PageTopHeaderColumn
+  PageTopHeaderColumn,
+  MobileCardWrapper,
+  MobileCard
 } from "../../components/EstilosPainel.styles";
 
 import {
   PlusIcon,
   EyeIcon,
   UserIcon,
-  InfoIcon,
+  InfoIcon
 } from "@phosphor-icons/react";
 import { Button } from "../../components/Button";
 
@@ -36,6 +39,8 @@ interface FiltroSalvo {
   values: typeof defaultFilters;
 }
 
+const STATUS_OPTIONS = ["Pendente", "Em andamento", "Concluída", "Não Atendida"];
+
 const defaultFilters = {
   periodoInicio: "",
   periodoFim: "",
@@ -43,7 +48,8 @@ const defaultFilters = {
   regiao: "todas",
   viatura: "",
   buscaLivre: "",
-  status: ["Pendente", "Em andamento", "Concluído"],
+  status: [...STATUS_OPTIONS],
+  natureza: "todos",
 };
 
 export function ListaOcorrencias() {
@@ -57,100 +63,118 @@ export function ListaOcorrencias() {
   const [showModal, setShowModal] = useState(false);
   const [newFilterName, setNewFilterName] = useState("");
 
-  const ocorrencias = useMemo(
-    () => [
-      {
-        id: "#OCR-2025-001",
-        data: "20/10/2025",
-        hora: "08:30",
-        tipo: "Incêndio",
-        localizacao: "Recife - Boa Viagem",
-        viatura: "ABT-01",
-        status: "Em andamento",
-        responsavel: "Sgt. Carlos Silva",
-      },
-      {
-        id: "#OCR-2025-002",
-        data: "19/10/2025",
-        hora: "14:15",
-        tipo: "Resgate",
-        localizacao: "Olinda - Bairro Novo",
-        viatura: "USB-02",
-        status: "Concluído",
-        responsavel: "Cb. Ana Costa",
-      },
-      {
-        id: "#OCR-2025-003",
-        data: "18/10/2025",
-        hora: "10:45",
-        tipo: "APH",
-        localizacao: "Jaboatão - Prazeres",
-        viatura: "USA-03",
-        status: "Pendente",
-        responsavel: "Sd. Pedro Lima",
-      },
-      {
-        id: "#OCR-2025-004",
-        data: "21/10/2025",
-        hora: "16:10",
-        tipo: "Incêndio",
-        localizacao: "Recife - Boa Vista",
-        viatura: "ABT-04",
-        status: "Concluído",
-        responsavel: "Sgt. Maria Oliveira",
-      },
-      {
-        id: "#OCR-2025-005",
-        data: "22/10/2025",
-        hora: "09:20",
-        tipo: "Resgate",
-        localizacao: "Olinda - Varadouro",
-        viatura: "USB-05",
-        status: "Em andamento",
-        responsavel: "Cb. João Santos",
-      },
-      {
-        id: "#OCR-2025-006",
-        data: "23/10/2025",
-        hora: "07:50",
-        tipo: "APH",
-        localizacao: "Recife - Pina",
-        viatura: "USA-03",
-        status: "Pendente",
-        responsavel: "Sgt. Carlos Silva",
-      },
-      {
-        id: "#OCR-2025-007",
-        data: "24/10/2025",
-        hora: "13:25",
-        tipo: "Incêndio",
-        localizacao: "Jaboatão - Curado",
-        viatura: "ABT-01",
-        status: "Concluído",
-        responsavel: "Cb. Ana Costa",
-      },
-      {
-        id: "#OCR-2025-008",
-        data: "24/10/2025",
-        hora: "11:00",
-        tipo: "Resgate",
-        localizacao: "Recife - Casa Forte",
-        viatura: "USB-02",
-        status: "Em andamento",
-        responsavel: "Sd. Pedro Lima",
-      },
-    ],
-    []
-  );
+  const [ocorrencias, setOcorrencias] = useState<any[]>([]);
+
+  const [regioesDisponiveis, setRegioesDisponiveis] = useState<string[]>([]);
+  const [naturezasOcorrencias, setNaturezasOcorrencias] = useState<string[]>([]);
+
+  useEffect(() => {
+    async function fetchOptions() {
+      try {
+        // regiões
+        const regResp = await fetch("https://backend-chama.up.railway.app/regioes");
+        const regData = await regResp.json();
+        setRegioesDisponiveis(regData.map((r: any) => r.nome)); // ajusta conforme seu JSON
+
+        // tipos
+        const tipoResp = await fetch("https://backend-chama.up.railway.app/naturezasocorrencias");
+        const tipoData = await tipoResp.json();
+        setNaturezasOcorrencias(tipoData.map((t: any) => t.nome)); // ajusta conforme seu JSON
+      } catch (err) {
+        console.error("Erro ao buscar opções:", err);
+      }
+    }
+    fetchOptions();
+  }, []);
+
+  useEffect(() => {
+    async function fetchOcorrencias() {
+      try {
+        const response = await fetch("https://backend-chama.up.railway.app/ocorrencias");
+        const data = await response.json();
+
+        // Mapeamento do retorno para o formato que a tabela usa
+        const mapped = data.map((o: any) => {
+          const dataObj = o.dataHoraChamada ? new Date(o.dataHoraChamada) : null;
+
+          // valores padrão caso a data não seja válida
+          let dataFormatada: string = "N/A";
+          let horaFormatada: string = "";
+          let dataTimestamp: number | undefined = undefined;
+          let dataISO: string | undefined = undefined;
+
+          if (dataObj && !isNaN(dataObj.getTime())) {
+            // data válida
+            dataFormatada = dataObj.toLocaleDateString("pt-BR");
+            horaFormatada = dataObj.toLocaleTimeString("pt-BR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            dataTimestamp = dataObj.getTime();
+            dataISO = dataObj.toISOString();
+            console.log(dataISO);
+          } else {
+            console.warn("Data inválida:", o.dataHoraChamada);
+            // mantenha os valores padrão ou ajuste conforme necessário
+          }
+
+          return {
+            id: o.numeroOcorrencia || `#OCR-${o.id}`,
+            data: dataFormatada,
+            hora: horaFormatada,
+            dataTimestamp: dataTimestamp, // timestamp (pode ser undefined)
+            dataISO: dataISO,
+            natureza: o.naturezaOcorrencia?.nome || "N/A",
+            // localizacao já no formato "municipio - bairro"
+            localizacao: o.localizacao
+              ? `${o.localizacao.municipio} - ${o.localizacao.bairro}`
+              : "Não informada",
+            viatura: o.viatura
+              ? `${o.viatura.tipo}-${o.viatura.numero}`
+              : "Sem viatura",
+            // garante nome do tipo se existir
+            tipo: o.tipo?.nome || o.tipo || "N/A",
+            status:
+              o.statusAtendimento === "pendente"
+                ? "Pendente"
+                : o.statusAtendimento === "em_andamento"
+                  ? "Em andamento"
+                  : o.statusAtendimento === "concluida"
+                    ? "Concluída"
+                    : o.statusAtendimento === "nao_atendido"
+                      ? "Não Atendida"
+                      : "Desconhecido",
+            responsavel: o.usuario?.nome || "N/A",
+          };
+        });
+
+        setOcorrencias(mapped);
+
+        // popula regioesDisponiveis a partir das localizacoes únicas presentes
+        const uniqueLocs: string[] = Array.from(new Set(
+          mapped
+            .map((m: any) => m.localizacao)
+            .filter((l: string) => l && l !== "Não informada")
+        )).map(String);
+        setRegioesDisponiveis(uniqueLocs);
+      } catch (error) {
+        console.error("Erro ao buscar ocorrências:", error);
+      }
+    }
+
+    fetchOcorrencias();
+  }, []);
+
 
 
   // filtragem
   const filteredOcorrencias = useMemo(() => {
     return ocorrencias.filter(o => {
-      const { periodoInicio, periodoFim, tipo, regiao, viatura, buscaLivre, status } = filters;
+      const { periodoInicio, periodoFim, tipo, regiao, viatura, buscaLivre, status, natureza } = filters;
 
-      const matchTipo = tipo === "todos" || o.tipo.toLowerCase() === tipo.toLowerCase();
+      const matchTipo = tipo === "todos" || ((o.tipo || "").toLowerCase() === tipo.toLowerCase());
       const matchRegiao = regiao === "todas" || o.localizacao.toLowerCase().includes(regiao.toLowerCase());
+      const matchNatureza = natureza === "todos" || o.natureza.toLowerCase() === natureza.toLowerCase();
       const matchViatura = !viatura || o.viatura.toLowerCase().includes(viatura.toLowerCase());
       const matchBusca = !buscaLivre ||
         o.id.toLowerCase().includes(buscaLivre.toLowerCase()) ||
@@ -159,29 +183,57 @@ export function ListaOcorrencias() {
 
       const matchStatus = status.includes(o.status);
 
+      // Comparar por timestamps (milissegundos) para evitar problemas de formato
       let matchPeriodo = true;
-      if (periodoInicio) matchPeriodo = o.data >= periodoInicio;
-      if (periodoFim) matchPeriodo = matchPeriodo && o.data <= periodoFim;
+      const ts = o.dataTimestamp ?? (new Date(o.data).getTime());
+      if (periodoInicio) {
+        const startTs = new Date(periodoInicio + "T00:00:00").getTime();
+        matchPeriodo = ts >= startTs;
+      }
+      if (periodoFim) {
+        const endTs = new Date(periodoFim + "T23:59:59.999").getTime();
+        matchPeriodo = matchPeriodo && ts <= endTs;
+      }
 
-      return matchTipo && matchRegiao && matchViatura && matchBusca && matchPeriodo && matchStatus;
+      return matchTipo && matchRegiao && matchNatureza && matchViatura && matchBusca && matchPeriodo && matchStatus;
     });
   }, [ocorrencias, filters]);
 
 
-  // paginação
-  const totalPages = Math.ceil(filteredOcorrencias.length / pageSize);
-  const paginatedOcorrencias = filteredOcorrencias.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+// Corrige o cálculo do totalPages
+const totalPages = Math.max(1, Math.ceil(filteredOcorrencias.length / pageSize));
 
+// Garante que currentPage sempre esteja dentro do range válido
+useEffect(() => {
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(totalPages);
+  } else if (currentPage < 1) {
+    setCurrentPage(1);
+  }
+}, [totalPages, currentPage]);
+
+// Paginação correta - sempre retorna no máximo 6 itens
+const paginatedOcorrencias = useMemo(() => {
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  return filteredOcorrencias.slice(start, end);
+}, [filteredOcorrencias, currentPage, pageSize]);
+
+
+  // quando filtros mudam, volta para a primeira página
   useEffect(() => setCurrentPage(1), [filters]);
+
+  // se filteredOcorrencias encolher, ajusta currentPage para não ficar fora do range
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Em andamento": return "#3B82F6";
-      case "Concluído": return "#10B981";
+      case "Concluída": return "#10B981";
       case "Pendente": return "#EF4444";
+      case "Não Atendida": return "#F59E0B";
       default: return "#6B7280";
     }
   };
@@ -236,8 +288,13 @@ export function ListaOcorrencias() {
             </AuditStatCard>
 
             <AuditStatCard>
-              <h3>{ocorrencias.filter(o => o.status === "Concluído").length}</h3>
+              <h3>{ocorrencias.filter(o => o.status === "Concluída").length}</h3>
               <span>Concluídas</span>
+            </AuditStatCard>
+
+            <AuditStatCard>
+              <h3>{ocorrencias.filter(o => o.status === "Não Atendida").length}</h3>
+              <span>Não Atendidas</span>
             </AuditStatCard>
 
           </MiniGrid>
@@ -253,59 +310,78 @@ export function ListaOcorrencias() {
             <Grid>
               <Field>
                 <label>Período</label>
-                <DateRange>
-                  <input type="date" value={filters.periodoInicio} onChange={e => setFilters(f => ({ ...f, periodoInicio: e.target.value }))} />
-                  <input type="date" value={filters.periodoFim} onChange={e => setFilters(f => ({ ...f, periodoFim: e.target.value }))} />
-                </DateRange>
+                  <DateRange>
+                    <input type="date" value={filters.periodoInicio} onChange={e => setFilters(f => ({ ...f, periodoInicio: e.target.value }))} />
+                    <input type="date" value={filters.periodoFim} onChange={e => setFilters(f => ({ ...f, periodoFim: e.target.value }))} />
+                  </DateRange>
               </Field>
               <Field>
-                <label>Tipo de Ocorrência</label>
-                <select value={filters.tipo} onChange={e => setFilters(f => ({ ...f, tipo: e.target.value }))}>
-                  <option value="todos">Todos</option>
-                  <option value="Incêndio">Incêndio</option>
-                  <option value="Resgate">Resgate</option>
-                  <option value="APH">APH</option>
-                </select>
-              </Field>
-              <Field>
-                <label>Região / Setor</label>
-                <select value={filters.regiao} onChange={e => setFilters(f => ({ ...f, regiao: e.target.value }))}>
-                  <option value="todas">Todas</option>
-                  <option value="Recife">Recife</option>
-                  <option value="Olinda">Olinda</option>
-                  <option value="Jaboatão">Jaboatão</option>
-                </select>
-              </Field>
-              <Field>
-                <label>Viatura / Equipe</label>
-                <input type="text" placeholder="Digite para buscar..." value={filters.viatura} onChange={e => setFilters(f => ({ ...f, viatura: e.target.value }))} />
-              </Field>
-              <Field>
-                <label>Status</label>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "4px" }}>
-                  {["Pendente", "Em andamento", "Concluído"].map(s => (
-                    <label key={s} style={{ fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
-                      <input
-                        type="checkbox"
-                        checked={filters.status.includes(s)}
-                        onChange={e => {
-                          setFilters(f => {
-                            const newStatus = e.target.checked
-                              ? [...f.status, s]
-                              : f.status.filter(item => item !== s);
-                            return { ...f, status: newStatus.length === 0 ? [] : newStatus };
-                          });
-                        }}
-                      />
-                      {s}
-                    </label>
-                  ))}
-                </div>
+                <label>Natureza da Ocorrência</label>
+                  <select
+                    value={filters.natureza}
+                    onChange={e => setFilters(f => ({ ...f, natureza: e.target.value }))}
+                  >
+                    <option value="todos">Todos</option>
+                    {naturezasOcorrencias.map((t, index) => (
+                      <option key={`${t}-${index}`} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                
               </Field>
 
               <Field>
+                <label>Localização</label>
+                  <select
+                    value={filters.regiao}
+                    onChange={e => setFilters(f => ({ ...f, regiao: e.target.value }))}
+                  >
+                    <option value="todas">Todas</option>
+                    {regioesDisponiveis.map((r, index) => (
+                      <option key={`${r}-${index}`} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                
+              </Field>
+
+              <Field>
+                <label>Viatura / Equipe</label>
+                  <input type="text" placeholder="Digite para buscar..." value={filters.viatura} onChange={e => setFilters(f => ({ ...f, viatura: e.target.value }))} />
+
+              </Field>
+              <Field>
+                <label>Status</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "4px" }}>
+                    {STATUS_OPTIONS.map((s, index) => (
+                      <label
+                        key={`${s}-${index}`}
+                        style={{ fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={filters.status.includes(s)}
+                          onChange={e => {
+                            setFilters(f => {
+                              const newStatus = e.target.checked
+                                ? [...f.status, s]
+                                : f.status.filter(item => item !== s);
+                              return { ...f, status: newStatus };
+                            });
+                          }}
+                        />
+                        {s}
+                      </label>
+                    ))}
+                  </div>
+              </Field>
+
+
+              <Field>
                 <label>Busca Livre</label>
-                <input type="text" placeholder="Pesquisar por ID, responsável, local..." value={filters.buscaLivre} onChange={e => setFilters(f => ({ ...f, buscaLivre: e.target.value }))} />
+                  <input type="text" placeholder="Pesquisar por ID, responsável, local..." value={filters.buscaLivre} onChange={e => setFilters(f => ({ ...f, buscaLivre: e.target.value }))} />
               </Field>
             </Grid>
 
@@ -324,56 +400,57 @@ export function ListaOcorrencias() {
               {savedFilters.length === 0 && <p style={{ fontSize: '13px', color: '#6b7280' }}>Nenhum filtro salvo.</p>}
 
               {savedFilters.map(f => {
-  const { tipo, regiao, viatura, periodoInicio, periodoFim, buscaLivre } = f.values;
+                const { tipo, regiao, viatura, periodoInicio, periodoFim, natureza, buscaLivre } = f.values;
 
-  const descricaoParts: string[] = [];
+                const descricaoParts: string[] = [];
 
-  if (tipo && tipo !== "todos") descricaoParts.push(`Tipo: ${tipo}`);
-  if (regiao && regiao !== "todas") descricaoParts.push(`Região: ${regiao}`);
-  if (viatura) descricaoParts.push(`Viatura: ${viatura}`);
-  if (buscaLivre) descricaoParts.push(`Busca: ${buscaLivre}`);
-  if (f.values.status && f.values.status.length > 0) {
-    if (f.values.status.length !== 3) descricaoParts.push(`Status: ${f.values.status.join(", ")}`);
-  }
-  if (periodoInicio || periodoFim) {
-    descricaoParts.push(`Período: ${periodoInicio || "..."} até ${periodoFim || "..."}`);
-  }
+                if (tipo && tipo !== "todos") descricaoParts.push(`Tipo: ${tipo}`);
+                if (regiao && regiao !== "todas") descricaoParts.push(`Região: ${regiao}`);
+                if (viatura) descricaoParts.push(`Viatura: ${viatura}`);
+                if (natureza && natureza !== "todos") descricaoParts.push(`Natureza: ${natureza}`);
+                if (buscaLivre) descricaoParts.push(`Busca: ${buscaLivre}`);
+                if (f.values.status && f.values.status.length > 0) {
+                  if (f.values.status.length !== 4) descricaoParts.push(`Status: ${f.values.status.join(", ")}`);
+                }
+                if (periodoInicio || periodoFim) {
+                  descricaoParts.push(`Período: ${periodoInicio || "..."} até ${periodoFim || "..."}`);
+                }
 
-  const descricao = descricaoParts.length > 0 ? descricaoParts.join(", ") : "Todos os registros";
+                const descricao = descricaoParts.length > 0 ? descricaoParts.join(", ") : "Todos os registros";
 
-  const handleRemoveFilter = (id: string) => {
-    setSavedFilters(prev => prev.filter(item => item.id !== id));
-  };
+                const handleRemoveFilter = (id: string) => {
+                  setSavedFilters(prev => prev.filter(item => item.id !== id));
+                };
 
-  return (
-    <SavedFilterCard key={f.id}>
-      <div
-        className="filter-name"
-        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
-        onClick={() => handleApplySavedFilter(f)}
-      >
-        <span>{f.name}</span>
-        <button
-          style={{
-            border: "none",
-            background: "transparent",
-            color: "#ef4444",
-            cursor: "pointer",
-            fontWeight: "bold",
-            marginLeft: "8px",
-          }}
-          onClick={(e) => {
-            e.stopPropagation(); // evita que o clique aplique o filtro
-            handleRemoveFilter(f.id);
-          }}
-        >
-          ✕
-        </button>
-      </div>
-      <div className="filter-description">{descricao}</div>
-    </SavedFilterCard>
-  );
-})}
+                return (
+                  <SavedFilterCard key={f.id}>
+                    <div
+                      className="filter-name"
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
+                      onClick={() => handleApplySavedFilter(f)}
+                    >
+                      <span>{f.name}</span>
+                      <button
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          color: "#ef4444",
+                          cursor: "pointer",
+                          fontWeight: "bold",
+                          marginLeft: "8px",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation(); // evita que o clique aplique o filtro
+                          handleRemoveFilter(f.id);
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="filter-description">{descricao}</div>
+                  </SavedFilterCard>
+                );
+              })}
 
             </Grid>
 
@@ -410,7 +487,7 @@ export function ListaOcorrencias() {
         <GridColumn weight={3}>
           <BoxInfo>
             <SectionTitle>Resultados</SectionTitle>
-            <TableWrapper>
+            <TableWrapper className="TableWrapper">
               <Table>
                 <thead>
                   <tr>
@@ -431,7 +508,7 @@ export function ListaOcorrencias() {
                       <td><input type="checkbox" /></td>
                       <td>{o.id}</td>
                       <td>{o.data}<br /><small>{o.hora}</small></td>
-                      <td>{o.tipo}</td>
+                      <td>{o.natureza}</td>
                       <td>{o.localizacao}</td>
                       <td>{o.viatura}</td>
                       <td style={{ color: getStatusColor(o.status), fontWeight: 600 }}>{o.status}</td>
@@ -452,6 +529,40 @@ export function ListaOcorrencias() {
                 </tbody>
               </Table>
             </TableWrapper>
+
+            <MobileCardWrapper className="MobileCardWrapper">
+              {paginatedOcorrencias.map((o, i) => (
+                <MobileCard key={i}>
+                  <div className="ocorrencia-header">
+                    <div className="ocorrencia-info">
+                      <strong>Ocorrência #{o.id}</strong>
+                      <div className="data-hora"> {o.data} <small>{o.hora}</small>
+                      </div> <div className="tipo">{o.natureza}</div> </div>
+                    <div className="status"
+                      style={{
+                        color: getStatusColor(o.status),
+                        fontWeight: 600
+                      }}> {o.status} </div> </div>
+                  <div className="ocorrencia-details">
+                    <div className="detail"><span>Localização:</span> {o.localizacao}</div>
+                    <div className="detail"><span>Viatura:</span> {o.viatura}</div>
+                    <div className="detail"><span>Responsável:</span> {o.responsavel}</div>
+                  </div>
+
+                  <div className="actions">
+                    <button title="Visualizar" style={{ border: "none", background: "transparent", cursor: "pointer" }}>
+                      <EyeIcon size={18} />
+                    </button>
+                    <button title="Atribuir" style={{ border: "none", background: "transparent", cursor: "pointer" }}>
+                      <UserIcon size={18} />
+                    </button>
+                    <button title="Detalhes" style={{ border: "none", background: "transparent", cursor: "pointer" }}>
+                      <InfoIcon size={18} />
+                    </button>
+                  </div>
+                </MobileCard>
+              ))} </MobileCardWrapper>
+
 
             {/* Paginação */}
             <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem", marginTop: "1rem" }}>

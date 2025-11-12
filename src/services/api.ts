@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://backend-chama.up.railway.app/", 
+  baseURL: "http://localhost:5173", 
 });
 
 export default api;

@@ -15,8 +15,8 @@ import {
     PageTopHeaderRow,
     PageTopHeaderColumn,
     TableWrapper,
-    UserCard,
-    UserCardWrapper,
+    MobileCard,
+    MobileCardWrapper,
 } from "../../components/EstilosPainel.styles";
 import { PlusIcon, PencilIcon, TrashIcon, DotsThreeIcon } from "@phosphor-icons/react";
 import { Button } from "../../components/Button";
@@ -265,9 +265,9 @@ export function GestaoUsuarios() {
                             </Table>
                         </TableWrapper>
 
-                        <UserCardWrapper>
+                        <MobileCardWrapper>
                             {filteredUsuarios.map((u, i) => (
-                                <UserCard key={i}>
+                                <MobileCard key={i}>
                                     <div className="user-header">
                                         <img src={u.foto} alt={u.nome} />
                                         <div className="user-info">
@@ -289,9 +289,9 @@ export function GestaoUsuarios() {
                                         <button><TrashIcon size={18} /></button>
                                         <button><DotsThreeIcon size={20} weight="bold" /></button>
                                     </div>
-                                </UserCard>
+                                </MobileCard>
                             ))}
-                        </UserCardWrapper>
+                        </MobileCardWrapper>
 
 
                         {/* Paginação */}

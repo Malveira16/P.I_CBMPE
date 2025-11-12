@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { FileTextIcon, FireTruckIcon, GearIcon, MapPinIcon, PaperclipIcon, UserIcon, WarningCircleIcon } from "@phosphor-icons/react";
-import { BoxInfo, SectionTitle, Grid, Field, FullField, ContainerPainel, GridColumn, ResponsiveRow, PageSubtitle, PageTitle, PageTopHeader, RequiredNotice, TeamSearchWrapper, TeamSearchInput, TeamResults, TeamBox, TeamChip, MapFullBox, MapPlaceholder, PersonCard, PersonCardHeader, PersonRemoveButton, UploadArea, Divider, PreviewList, SectionSubtitle, SignatureActions, SignatureBox, ModalContent, ModalOverlay, StatusAlert } from "../../components/EstilosPainel.styles";
+import { FileTextIcon, FireTruckIcon, /* GearIcon,*/ MapPinIcon, PaperclipIcon, UserIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { BoxInfo, SectionTitle, Grid, Field, FullField, ContainerPainel, GridColumn, ResponsiveRow, PageSubtitle, PageTitle, PageTopHeader, RequiredNotice, /* TeamSearchWrapper, TeamSearchInput, TeamResults, TeamBox, TeamChip, */ MapFullBox, MapPlaceholder, PersonCard, PersonCardHeader, PersonRemoveButton, UploadArea, Divider, PreviewList, SectionSubtitle, SignatureActions, SignatureBox, ModalContent, ModalOverlay, StatusAlert } from "../../components/EstilosPainel.styles";
 import { Breadcrumb } from "../../components/Breadcrumb";
 import { useEffect, useRef, useState } from "react";
 import { fetchBairrosFromOSM, fetchMunicipiosPE, type Municipio } from "../../services/municipio_bairro";
@@ -11,6 +11,7 @@ import { Button } from "../../components/Button";
 import { useOnlineStatus } from "../../utils/useOnlineStatus";
 import { uploadToCloudinary } from "../../utils/uploadToCloudinary";
 import axios from "axios";
+import { formatCPF } from "../../utils/formatCPF";
 
 export function NovaOcorrencia() {
   const isOnline = useOnlineStatus();
@@ -77,6 +78,7 @@ export function NovaOcorrencia() {
     file?: File;    // só existe se for arquivo local
     url?: string;   // só existe se já foi enviado
     name: string;   // nome do arquivo
+    preview?: string; // preview local (object URL) para imagens
   };
 
 
@@ -88,6 +90,11 @@ export function NovaOcorrencia() {
   const [natureza, setNatureza] = useState("");
   const [loadingNaturezas, setLoadingNaturezas] = useState<boolean>(true);
 
+  const [condicoesVitima, setCondicoesVitima] = useState<
+    { id: number; tipoLesao: string }[]
+  >([]);
+  
+  const [loadingCondicaoVitima, setLoadingCondicaoVitima] = useState<boolean>(true);
   const [dataChamado, setDataChamado] = useState(getCurrentDateTime());
 
   const [statusAtendimento, setStatusAtendimento] = useState("Pendente");
@@ -142,7 +149,7 @@ export function NovaOcorrencia() {
   const [longitude, setLongitude] = useState("");
   const [formaAcionamento, setFormaAcionamento] = useState("Telefone");
   const [isLoadingOffline, setIsLoadingOffline] = useState(false);
-  const [users] = useState<string[]>([
+  /* const [users] = useState<string[]>([
     "Cabo Silva",
     "Sargento Souza",
     "Tenente Costa",
@@ -150,18 +157,63 @@ export function NovaOcorrencia() {
     "Soldado Araújo",
     "Soldada Araújo",
     "Major Fernandes",
-  ]);
-  const [chefe, setChefe] = useState("");
-  const [lider, setLider] = useState("");
-  const [team, setTeam] = useState<string[]>([]);
-  const [teamQuery, setTeamQuery] = useState("");
+  ]); */
+  // const [chefe, setChefe] = useState("");
+  // const [lider, setLider] = useState("");
+  // const [team, setTeam] = useState<string[]>([]);
+  // const [teamQuery, setTeamQuery] = useState("");
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
-  const [modalCanvasRef, setModalCanvasRef] = useState<HTMLCanvasElement | null>(null);
+  const modalCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isModalDrawing, setIsModalDrawing] = useState(false);
+  const [assinaturaUrl, setAssinaturaUrl] = useState<string | undefined>(undefined);
+  // armazena a assinatura localmente (dataURL) até o envio final ao salvar a ocorrência
+  const [assinaturaDataUrl, setAssinaturaDataUrl] = useState<string | undefined>(undefined);
+
+  // novo: largura controlada do canvas do modal para não exceder a viewport
+  const [modalCanvasWidth, setModalCanvasWidth] = useState<number>(() =>
+    typeof window !== "undefined" ? Math.min(Math.max(280, window.innerWidth - 40), 900) : 800
+  );
+
+  // novo: bloquear o scroll do body e impedir touchmove enquanto o modal estiver aberto;
+  // também atualiza o tamanho do canvas quando a janela é redimensionada.
+  useEffect(() => {
+    if (!signatureModalOpen) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const preventTouch = (e: TouchEvent) => {
+      // somente previne quando o alvo for o canvas ou estiver dentro do modal
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest && target.closest(".modal-content-canvas-block")) {
+        if (e.cancelable) e.preventDefault();
+      }
+    };
+    // listeners com passive:false para permitir preventDefault em touchmove
+    document.addEventListener("touchmove", preventTouch, { passive: false });
+
+    const updateSize = () => {
+      const w = typeof window !== "undefined" ? Math.min(Math.max(280, window.innerWidth - 40), 900) : modalCanvasWidth;
+      setModalCanvasWidth(w);
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener("touchmove", preventTouch);
+      window.removeEventListener("resize", updateSize);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signatureModalOpen]);
+
+  console.log(assinaturaUrl, assinaturaDataUrl);
+
   const [eventoEspecial, setEventoEspecial] = useState(false);
 
   const [usuarioLogado] = useState({
@@ -172,9 +224,15 @@ export function NovaOcorrencia() {
   type Pessoa = {
     id: number;
     nome: string;
-    idade: string;
-    documento: string;
+    sexo?: string;
+    etnia?: string;
+    idade?: number;
+    cpf: string;
+    tipoAtendimento: string;
+    observacoes: string;
     condicao: string;
+    destinoVitima?: string;
+    condicaoVitima?: number;
   };
 
   useEffect(() => {
@@ -206,7 +264,7 @@ export function NovaOcorrencia() {
     return new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  const handleAddToTeam = (name: string) => {
+  /* const handleAddToTeam = (name: string) => {
     if (!name) return;
     setTeam((t) => (t.includes(name) ? t : [...t, name]));
     setTeamQuery("");
@@ -219,7 +277,7 @@ export function NovaOcorrencia() {
   const filteredUsers = users.filter(
     (u) => u.toLowerCase().includes(teamQuery.toLowerCase()) && !team.includes(u)
   );
-
+*/
   if ("Marker" in L && !(L as any)._copilot_icon_set) {
     const DefaultIcon = L.icon({
       iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
@@ -289,9 +347,10 @@ export function NovaOcorrencia() {
   const addPessoa = () => {
     setPessoas((prev) => [
       ...prev,
-      { id: Date.now() + Math.floor(Math.random() * 1000), nome: "", idade: "", documento: "", condicao: "Ileso" },
+      { id: Date.now() + Math.floor(Math.random() * 1000), nome: "", idade: undefined, cpf: "", tipoAtendimento: "", condicao: "", sexo: "", etnia: "", observacoes: "" },
     ]);
   };
+
 
   const updatePessoa = (id: number, patch: Partial<Pessoa>) => {
     setPessoas((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
@@ -304,29 +363,17 @@ export function NovaOcorrencia() {
   const handleFileUpload = async (files: FileList | null) => {
     if (!files) return;
 
+    // Apenas adiciona os arquivos localmente (não faz upload aqui).
     const newFiles: UploadedFile[] = Array.from(files).map((file) => ({
       file,
       name: file.name,
+      url: undefined,
+      preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
     }));
 
     setUploadedFiles((prev) => [...prev, ...newFiles]);
 
-    const uploadedUrls = await Promise.all(
-      newFiles.map(async (f) => {
-        const url = await uploadToCloudinary(f.file!);
-        return { ...f, url };
-      })
-    );
-
-    setUploadedFiles((prev) => {
-      // substitui os arquivos enviados com a URL
-      return prev.map((f) => {
-        const updated = uploadedUrls.find((u) => u.name === f.name);
-        return updated || f;
-      });
-    });
-
-    console.log("Arquivos enviados:", uploadedUrls);
+    // OBS: o upload só ocorrerá no fluxo de "Salvar Ocorrência" (já implementado).
   };
 
   useEffect(() => {
@@ -410,12 +457,44 @@ export function NovaOcorrencia() {
     fetchSubgrupos();
   }, []);
 
+  useEffect(() => {
+    const fetchCondicaoVitima = async () => {
+      try {
+        const response = await axios.get("https://backend-chama.up.railway.app/lesoes");
+        setCondicoesVitima(response.data);
+      } catch (error) {
+        console.error("Erro ao carregar condições da vítima:", error);
+        alert("Erro ao carregar condições da vítima");
+      } finally {
+        setLoadingCondicaoVitima(false); // <--- importante!
+      }
+    };
 
+    fetchCondicaoVitima();
+  }, []);
+
+
+  // ======= NOVOS HANDLERS (Pointer Events) =======
   const startDrawing = (e: any) => {
+    // React's pointer event / native pointer available — previne scroll e captura o ponteiro
+    try {
+      e.preventDefault();
+    } catch { /* noop */ }
+
     const canvas = signatureCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    // garantir captura do pointer (mantém os eventos mesmo se o dedo mover para fora)
+    try {
+      if (typeof e.pointerId === "number" && canvas.setPointerCapture) {
+        canvas.setPointerCapture(e.pointerId);
+      }
+    } catch {
+      // ignore
+    }
+
     setIsDrawing(true);
     const { x, y } = getCoordinates(e, canvas);
     ctx.beginPath();
@@ -423,6 +502,12 @@ export function NovaOcorrencia() {
   };
 
   const draw = (e: any) => {
+    try {
+      e.preventDefault();
+    } catch {
+      // noop
+    }
+
     if (!isDrawing) return;
     const canvas = signatureCanvasRef.current;
     if (!canvas) return;
@@ -436,59 +521,85 @@ export function NovaOcorrencia() {
     ctx.stroke();
   };
 
-  const endDrawing = () => {
+  const endDrawing = (e?: any) => {
+    // tenta liberar a captura do pointer se disponível
+    try {
+      if (e && typeof e.pointerId === "number" && signatureCanvasRef.current?.releasePointerCapture) {
+        signatureCanvasRef.current.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // ignore
+    }
     setIsDrawing(false);
   };
 
   const getCoordinates = (e: any, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
+
+    // PointerEvent / MouseEvent com clientX/clientY
+    if (typeof e.clientX === "number" && typeof e.clientY === "number") {
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    // TouchEvent (fallback)
     if (e.touches && e.touches.length > 0) {
       return {
         x: e.touches[0].clientX - rect.left,
         y: e.touches[0].clientY - rect.top,
       };
-    } else {
-      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     }
+
+    // changedTouches fallback (ex: touchend)
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      return {
+        x: e.changedTouches[0].clientX - rect.left,
+        y: e.changedTouches[0].clientY - rect.top,
+      };
+    }
+
+    // último recurso
+    return { x: 0, y: 0 };
   };
 
-  const clearSignature = () => {
-    const canvas = signatureCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    ctx?.clearRect(0, 0, canvas.width, canvas.height);
-  };
-
-  const saveSignature = async () => {
-    const canvas = signatureCanvasRef.current;
-    if (!canvas) return;
-
-    const dataURL = canvas.toDataURL("image/png");
-    const blob = await (await fetch(dataURL)).blob();
-    const file = new File([blob], "assinatura.png", { type: "image/png" });
-
-    const url = await uploadToCloudinary(file);
-    console.log("URL da assinatura:", url);
-
-    alert("Assinatura enviada com sucesso!");
-    // Aqui você salva a URL no estado para enviar ao backend
-  };
-
+  // Modal canvas: mesmos princípios
   const startModalDrawing = (e: any) => {
-    if (!modalCanvasRef) return;
-    const ctx = modalCanvasRef.getContext("2d");
+    try {
+      e.preventDefault();
+    } catch { 
+      /* noop */ 
+    }
+
+    const modal = modalCanvasRef.current;
+    if (!modal) return;
+    const ctx = modal.getContext("2d");
     if (!ctx) return;
+
+    try {
+      if (typeof e.pointerId === "number" && modal.setPointerCapture) {
+        modal.setPointerCapture(e.pointerId);
+      }
+    } catch {
+      // ignore
+    }
+
     setIsModalDrawing(true);
-    const { x, y } = getCoordinates(e, modalCanvasRef);
+    const { x, y } = getCoordinates(e, modal);
     ctx.beginPath();
     ctx.moveTo(x, y);
   };
 
   const drawModal = (e: any) => {
-    if (!isModalDrawing || !modalCanvasRef) return;
-    const ctx = modalCanvasRef.getContext("2d");
+    try {
+      e.preventDefault();
+    } catch {
+      /* noop */ 
+    }
+
+    if (!isModalDrawing || !modalCanvasRef.current) return;
+    const modal = modalCanvasRef.current;
+    const ctx = modal.getContext("2d");
     if (!ctx) return;
-    const { x, y } = getCoordinates(e, modalCanvasRef);
+    const { x, y } = getCoordinates(e, modal);
     ctx.lineTo(x, y);
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 2;
@@ -496,22 +607,61 @@ export function NovaOcorrencia() {
     ctx.stroke();
   };
 
-  const endModalDrawing = () => setIsModalDrawing(false);
-
+  const endModalDrawing = (e?: any) => {
+    try {
+      const modal = modalCanvasRef.current;
+      if (e && typeof e.pointerId === "number" && modal?.releasePointerCapture) {
+        modal.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // ignore
+    }
+    setIsModalDrawing(false);
+  };
+  
   const clearModalSignature = () => {
-    if (!modalCanvasRef) return;
-    const ctx = modalCanvasRef.getContext("2d");
-    ctx?.clearRect(0, 0, modalCanvasRef.width, modalCanvasRef.height);
+    const modal = modalCanvasRef.current;
+    if (!modal) return;
+    const ctx = modal.getContext("2d");
+    ctx?.clearRect(0, 0, modal.width, modal.height);
   };
 
-  const saveModalSignature = () => {
-    if (!modalCanvasRef) return;
-    const dataURL = modalCanvasRef.toDataURL("image/png");
-    console.log("Assinatura do modal:", dataURL);
-    setSignatureModalOpen(false);
-    alert("Assinatura salva do modal (base64 no console).");
-  };
-
+  const saveModalSignature = async () => {
+    const modal = modalCanvasRef.current;
+    if (!modal) return;
+    try {
+      const dataURL = modal.toDataURL("image/png");
+ 
+       // Copia a imagem do canvas modal para o canvas principal (tela menor)
+       if (signatureCanvasRef.current) {
+         const mainCanvas = signatureCanvasRef.current;
+         const mainCtx = mainCanvas.getContext("2d");
+         if (mainCtx) {
+           mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+           const img = new Image();
+           img.onload = () => {
+             mainCtx.drawImage(img, 0, 0, mainCanvas.width, mainCanvas.height);
+             // guarda localmente o dataURL da assinatura (upload só ao salvar a ocorrência)
+             setAssinaturaDataUrl(dataURL);
+             setAssinaturaUrl(undefined);
+           };
+           img.src = dataURL;
+         } else {
+           setAssinaturaDataUrl(dataURL);
+         }
+       } else {
+         setAssinaturaDataUrl(dataURL);
+       }
+ 
+       alert("Assinatura aplicada ao formulário (salva localmente). Será enviada ao salvar a ocorrência.");
+     } catch (err) {
+       console.error("Erro ao salvar assinatura do modal:", err);
+       alert("Falha ao salvar assinatura do modal.");
+     } finally {
+       setSignatureModalOpen(false);
+     }
+   };
+  
   function loadOfflineOccurrences() {
     const cached = getOfflineOccurrences();
     setOfflineOccurrences(cached);
@@ -527,8 +677,8 @@ export function NovaOcorrencia() {
       setStatusAtendimento(last.statusAtendimento || "Pendente");
       setDescricao(last.descricao || "");
       setUnidadesOperacionais(last.unidadeOperacional || "");
-      setChefe(last.chefe || "");
-      setLider(last.lider || "");
+      // setChefe(last.chefe || "");
+      // setLider(last.lider || "");
       // setPontoBase(last.pontoBase || "");
       // setViaturaUtilizada(last.viaturaUtilizada || "");
       setNumeracaoViatura(last.numeracaoViatura || "");
@@ -546,16 +696,20 @@ export function NovaOcorrencia() {
       setLatitude(last.latitude || "");
       setLongitude(last.longitude || "");
 
-      const equipe = Array.isArray(last.equipe) ? last.equipe : (last.equipe ? [String(last.equipe)] : []);
-      setTeam(equipe);
+      // const equipe = Array.isArray(last.equipe) ? last.equipe : (last.equipe ? [String(last.equipe)] : []);
+      // setTeam(equipe);
 
       const rawPessoas = Array.isArray(last.pessoas) ? last.pessoas : [];
       const normalizedPessoas = rawPessoas.map((p: any, idx: number) => ({
         id: p?.id ?? Date.now() + idx,
         nome: p?.nome ?? "",
         idade: p?.idade ?? "",
-        documento: p?.documento ?? "",
+        cpf: p?.cpf ?? "",
+        tipoAtendimento: p?.tipoAtendimento ?? "",
         condicao: p?.condicao ?? "Ileso",
+        sexo: p?.sexo ?? "",
+        etnia: p?.etnia ?? "",
+        observacoes: p?.observacoes ?? "",
       }));
       setPessoas(normalizedPessoas);
 
@@ -625,6 +779,14 @@ export function NovaOcorrencia() {
   };
 
 
+
+  function clearSignature() {    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx?.clearRect(0, 0, canvas.width, canvas.height);
+    setAssinaturaDataUrl(undefined);
+    setAssinaturaUrl(undefined);
+  }
 
   return (
     <ContainerPainel>
@@ -966,7 +1128,7 @@ export function NovaOcorrencia() {
                   </select>
                 )}
               </Field>
-
+              {/* 
               <Field>
                 <label>Chefe de Ocorrência</label>
                 <select value={chefe} onChange={(e) => setChefe(e.target.value)}>
@@ -990,7 +1152,7 @@ export function NovaOcorrencia() {
                 </select>
               </Field>
               <Field>
-                <label>Equipe</label>
+                <label>Equipe</Equipe
                 <TeamSearchWrapper>
                   <TeamSearchInput
                     placeholder="Digite para buscar membros..."
@@ -1027,10 +1189,10 @@ export function NovaOcorrencia() {
                         </button>
                       </TeamChip>
                     ))
-                  )}
+                  }
                 </TeamBox>
               </Field>
-              { /* <Field>
+              <Field>
                 <label>Ponto Base</label>
                 <select value={pontoBase} onChange={(e) => setPontoBase(e.target.value)}>
                   <option value="">Selecione ponto base no acionamento</option>
@@ -1039,8 +1201,8 @@ export function NovaOcorrencia() {
                   <option>Em deslocamento</option>
                 </select>
               </Field>
-              */}
-              {/* <Field>
+              
+              <Field>
                 <label>Viatura Utilizada</label>
                 <select value={viaturaUtilizada} onChange={(e) => setViaturaUtilizada(e.target.value)}>
                   <option value="">Selecione o tipo de viatura utilizada</option>
@@ -1072,6 +1234,7 @@ export function NovaOcorrencia() {
                     ))}
                   </select>
                 )}
+                
               </Field>
             </Grid>
           </BoxInfo>
@@ -1107,19 +1270,91 @@ export function NovaOcorrencia() {
                       </Field>
                       <Field>
                         <label>Idade</label>
-                        <input type="number" value={p.idade} onChange={(e) => updatePessoa(p.id, { idade: e.target.value })} />
+                        <input
+                          type="number"
+                          value={p.idade ?? ""}
+                          onChange={(e) =>
+                            updatePessoa(p.id, { idade: e.target.value === "" ? undefined : Number(e.target.value) })
+                          }
+                        />
                       </Field>
                       <Field>
-                        <label>Documento</label>
-                        <input placeholder="CPF, RG..." value={p.documento} onChange={(e) => updatePessoa(p.id, { documento: e.target.value })} />
-                      </Field>
-                      <Field>
-                        <label>Condição</label>
-                        <select value={p.condicao} onChange={(e) => updatePessoa(p.id, { condicao: e.target.value })}>
-                          <option>Ileso</option>
-                          <option>Ferido</option>
+                        <label>Sexo</label>
+                        <select
+                          value={p.sexo || ""}
+                          onChange={(e) => updatePessoa(p.id, { sexo: e.target.value })}
+                        >
+                          <option value="">Selecione o sexo</option>
+                          <option value="masculino">Masculino</option>
+                          <option value="feminino">Feminino</option>
+                          <option value="outro">Outro</option>
                         </select>
                       </Field>
+                      <Field>
+                        <label>Etnia</label>
+                        <select
+                          value={p.etnia || ""}
+                          onChange={(e) => updatePessoa(p.id, { etnia: e.target.value })}
+                        >
+                          <option value="">Selecione a etnia</option>
+                          <option value="branca">Branca</option>
+                          <option value="preta">Preta</option>
+                          <option value="parda">Parda</option>
+                          <option value="amarela">Amarela</option>
+                          <option value="indigena">Indígena</option>
+                          <option value="outro">Outro</option>
+                        </select>
+                      </Field>
+                      <Field>
+                        <label>CPF</label>
+                        <input
+                          type="text"
+                          placeholder="000.000.000-00"
+                          value={p.cpf}
+                          onChange={(e) => updatePessoa(p.id, { cpf: formatCPF(e.target.value) })}
+                          maxLength={14}
+                        />
+                      </Field>
+                      <Field>
+                        <label>Tipo de Atendimento</label>
+                        <input value={p.tipoAtendimento || ""} onChange={(e) => updatePessoa(p.id, { tipoAtendimento: e.target.value })} />
+                      </Field>
+                      <Field>
+                        <label className="required">Condição</label>
+                        {loadingCondicaoVitima ? (
+                          <select disabled>
+                            <option>Carregando condição da vítima...</option>
+                          </select>
+                        ) : (
+                          <select
+                            value={p.condicao || ""}
+                            onChange={(e) => updatePessoa(p.id, { condicao: e.target.value })}
+                            required
+                          >
+                            <option value="">Selecione</option>
+                            {condicoesVitima.map((n) => (
+                              <option key={n.id} value={n.id}>
+                                {n.tipoLesao}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </Field>
+                      <Field>
+                        <label>Destino da Vítima</label>
+                        <input
+                          value={p.destinoVitima || ""}
+                          onChange={(e) => updatePessoa(p.id, { destinoVitima: e.target.value })}
+                        />
+                      </Field>
+                      <FullField>
+                        <label>Observações</label>
+                        <textarea
+                          placeholder="Anotações sobre a pessoa, estado, etc."
+                          value={p.observacoes || ""}
+                          onChange={(e) => updatePessoa(p.id, { observacoes: e.target.value })}
+                        />
+                      </FullField>
                     </Grid>
                   </PersonCard>
                 ))}
@@ -1157,12 +1392,18 @@ export function NovaOcorrencia() {
             {uploadedFiles.length > 0 && (
               <PreviewList>
                 {uploadedFiles.map((f, idx) => (
-                  <div key={idx}>
+                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span>{f.name}</span>
-                    {f.url && (
+                    {f.url ? (
                       <a href={f.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8 }}>
                         Visualizar
                       </a>
+                    ) : f.preview ? (
+                      <a href={f.preview} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8 }}>
+                        Visualizar (local)
+                      </a>
+                    ) : (
+                      <span style={{ marginLeft: 8, color: "#64748b" }}>Local — será enviado ao salvar</span>
                     )}
                   </div>
                 ))}
@@ -1176,33 +1417,32 @@ export function NovaOcorrencia() {
                 ref={signatureCanvasRef}
                 width={window.innerWidth < 480 ? 300 : 500}
                 height={200}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={endDrawing}
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={endDrawing}
+                onPointerDown={startDrawing}
+                onPointerMove={draw}
+                onPointerUp={endDrawing}
+                onPointerCancel={endDrawing}
               />
               <SignatureActions>
                 <Button variant="secondary" text="Limpar" onClick={clearSignature} />
-                <Button text="Salvar Assinatura" onClick={saveSignature} />
                 <Button text="Abrir tela maior" onClick={() => setSignatureModalOpen(true)} />
               </SignatureActions>
             </SignatureBox>
             {signatureModalOpen && (
               <ModalOverlay>
                 <ModalContent>
-                  <canvas
-                    ref={setModalCanvasRef}
-                    width={window.innerWidth - 40}
-                    height={300}
-                    onMouseDown={startModalDrawing}
-                    onMouseMove={drawModal}
-                    onMouseUp={endModalDrawing}
-                    onTouchStart={startModalDrawing}
-                    onTouchMove={drawModal}
-                    onTouchEnd={endModalDrawing}
-                  />
+                  {/* marker CSS usado no preventTouch acima */}
+                  <div className="modal-content-canvas-block" style={{ width: "100%" }}>
+                    <canvas
+                      ref={modalCanvasRef}
+                      width={modalCanvasWidth}
+                      height={300}
+                      onPointerDown={startModalDrawing}
+                      onPointerMove={drawModal}
+                      onPointerUp={endModalDrawing}
+                      onPointerCancel={endModalDrawing}
+                      style={{ width: "100%", height: 300, display: "block" }}
+                    />
+                  </div>
                   <div style={{ display: "flex", gap: "0.5rem", marginTop: 12 }}>
                     <Button variant="secondary" text="Limpar" onClick={clearModalSignature} />
                     <Button text="Salvar" onClick={saveModalSignature} />
@@ -1214,7 +1454,7 @@ export function NovaOcorrencia() {
           </BoxInfo>
         </GridColumn>
       </ResponsiveRow>
-
+{/*
       <ResponsiveRow>
         <GridColumn weight={1}>
           <BoxInfo>
@@ -1223,7 +1463,8 @@ export function NovaOcorrencia() {
               <Field>
                 <label>Tempo Estimado de Resposta (min)</label>
                 <input value={tempoResposta} onChange={(e) => setTempoResposta(e.target.value)} />
-              </Field>
+              
+                </Field>
               <FullField>
                 <label>Observações Adicionais</label>
                 <textarea
@@ -1231,12 +1472,13 @@ export function NovaOcorrencia() {
                   value={observacoesAdicionais}
                   onChange={(e) => setObservacoesAdicionais(e.target.value)}
                 />
+                
               </FullField>
             </Grid>
           </BoxInfo>
         </GridColumn>
       </ResponsiveRow>
-
+*/}
       {/* Informações de auditoria
       <ResponsiveRow>
         <GridColumn weight={1}>
@@ -1308,16 +1550,16 @@ export function NovaOcorrencia() {
                         urlArquivo: u.url,
                         nomeArquivo: u.name,
                         extensaoArquivo: ext,
-                        descricao: "", // preencher se precisar
+                        descricao: "",
                       };
                     });
 
                   // incluir assinatura também como anexo (se foi enviada)
                   if (assinaturaUrl) {
                     anexos.push({
-                      tipoArquivo: "imagem",
+                      tipoArquivo: "assinatura",
                       urlArquivo: assinaturaUrl,
-                      nomeArquivo: `assinatura${numeroOcorrencia}.png`,
+                      nomeArquivo: `${numeroOcorrencia}.png`,
                       extensaoArquivo: "png",
                       descricao: "Assinatura do responsável",
                     });
@@ -1351,6 +1593,7 @@ export function NovaOcorrencia() {
 
                     // usuário fixo conforme solicitado
                     usuarioId: usuarioLogado.id,
+                    condicaoVitimaId: condicoesVitima.length > 0 ? Number(condicoesVitima[0]) : undefined,
                     unidadeOperacionalId: unidade ? Number(unidade) : undefined,
                     naturezaOcorrenciaId: natureza ? Number(natureza) : undefined,
                     grupoOcorrenciaId: grupo ? Number(grupo) : undefined,
@@ -1371,12 +1614,12 @@ export function NovaOcorrencia() {
 
                     anexos: Array.isArray(anexos)
                       ? anexos.map((u: any) => ({
-                          tipoArquivo: u.tipoArquivo,
-                          urlArquivo: u.urlArquivo,
-                          nomeArquivo: u.nomeArquivo,
-                          extensaoArquivo: u.extensaoArquivo,
-                          descricao: u.descricao || "",
-                        }))
+                        tipoArquivo: u.tipoArquivo,
+                        urlArquivo: u.urlArquivo,
+                        nomeArquivo: u.nomeArquivo,
+                        extensaoArquivo: u.extensaoArquivo,
+                        descricao: u.descricao || "",
+                      }))
                       : [],
 
                     // campos auxiliares/optativos
@@ -1399,10 +1642,53 @@ export function NovaOcorrencia() {
                     });
                     console.log("Ocorrência enviada:", response.data);
 
+                    // tentar extrair id da ocorrência retornada
+                    const ocorrenciaId = response.data?.id ?? response.data?.ocorrenciaId ?? undefined;
+
                     // remover item salvo localmente
                     const updatedOffline = getOfflineOccurrences().filter((o: any) => o.id !== saved?.id);
                     localStorage.setItem(CACHE_KEY, JSON.stringify(updatedOffline));
                     setOfflineOccurrences(updatedOffline);
+
+                    // enviar vítimas (se houver) para a API de vítimas
+                    if (Array.isArray(pessoas) && pessoas.length > 0) {
+                      // mapeador simples para sexo
+                      const mapSexo = (s?: string) => {
+                        if (!s) return undefined;
+                        const low = s.toString().toLowerCase();
+                        if (low.startsWith("m")) return "M";
+                        if (low.startsWith("f")) return "F";
+                        return "O";
+                      };
+
+                      const vitimasPayloads = pessoas.map((p) => ({
+                        cpfVitima: p.cpf || "",
+                        nome: p.nome || "",
+                        idade: p.idade ?? undefined,
+                        sexo: mapSexo(p.sexo),
+                        tipoAtendimento: p.tipoAtendimento || undefined,
+                        observacoes: p.observacoes || undefined,
+                        etnia: p.etnia || undefined,
+                        destinoVitima: p.destinoVitima || undefined,
+                        ocorrenciaId: ocorrenciaId,
+                        lesaoId: p.condicao ? Number(p.condicao) : (p.condicaoVitima ?? undefined),
+                      }));
+
+                      try {
+                        // POST paralelo das vítimas
+                        const results = await Promise.all(
+                          vitimasPayloads.map((vp) =>
+                            axios.post("https://backend-chama.up.railway.app/vitimas/", vp, {
+                              headers: { "Content-Type": "application/json" },
+                            })
+                          )
+                        );
+                        console.log("Vítimas enviadas:", results.map(r => r.data));
+                      } catch (err) {
+                        console.error("Erro ao enviar vítimas:", err);
+                        alert("Ocorrência enviada, mas falha ao enviar vítimas. Verifique o console.");
+                      }
+                    }
                   } else {
                     alert("Sem internet. Ocorrência salva offline.");
                   }
@@ -1414,8 +1700,6 @@ export function NovaOcorrencia() {
                 }
               }}
             />
-
-
           </div>
         </GridColumn>
       </ResponsiveRow>

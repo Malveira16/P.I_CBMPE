@@ -26,11 +26,6 @@ export function Button({ text, onClick, type = "button", variant = "primary", st
   };
 
   const base: React.CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    fontWeight: 600,
     padding: "10px 20px",
     borderRadius: "6px",
     cursor: "pointer",

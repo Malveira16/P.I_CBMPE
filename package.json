@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
@@ -12,28 +14,37 @@
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
     "axios": "^1.12.2",
-    "dotenv": "^17.2.3",
     "leaflet": "^1.9.4",
+    "leaflet.heat": "^0.2.0",
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.9.3",
     "styled-components": "^6.1.19"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/leaflet": "^1.9.21",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@types/styled-components": "^5.1.34",
     "@vitejs/plugin-react": "^5.0.3",
+    "cypress": "^15.5.0",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.4.0",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.44.0",
+    "util": "^0.12.5",
     "vite": "^7.1.7"
   }
 }

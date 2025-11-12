@@ -1,8 +1,9 @@
-import { ExportIcon, ListDashesIcon, PencilSimpleIcon, SignInIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "../../components/Button";
 import { Fragment, useState } from "react";
 import {
   ContainerPainel,
+  PageTopHeader,
   PageTitle,
   PageSubtitle,
   ResponsiveRow,
@@ -21,9 +22,6 @@ import {
   FilterChip,
   FilterChipsContainer,
   TableWrapper,
-  PageTopHeaderColumn,
-  PageTopHeaderRow,
-  StatIconWrapper,
 } from "../../components/EstilosPainel.styles";
 import { logs } from "../../assets/logs";
 import { formatDate } from "../../utils/formatDate";
@@ -121,25 +119,12 @@ export function Auditoria() {
     searchText ? { label: `Busca: "${searchText}"`, key: "searchText" } : null,
   ].filter(Boolean) as { label: string; key: string }[];
 
-
-
   return (
     <ContainerPainel>
-      <PageTopHeaderRow>
-        <PageTopHeaderColumn>
-          <PageTitle>Auditoria & Logs</PageTitle>
-          <PageSubtitle>Trilha de auditoria completa para compliance e investigação.</PageSubtitle>
-        </PageTopHeaderColumn>
-        <PageTopHeaderColumn>
-          <ActionsRow>
-            <Button
-              variant="danger"
-              text={<><ExportIcon size={16} style={{ marginRight: 8 }} weight="bold" />Exportar logs</>}
-              onClick={() => { }}
-            />
-          </ActionsRow>
-        </PageTopHeaderColumn>
-      </PageTopHeaderRow>
+      <PageTopHeader>
+        <PageTitle>Auditoria & Logs</PageTitle>
+        <PageSubtitle>Trilha de auditoria completa para compliance e investigação.</PageSubtitle>
+      </PageTopHeader>
 
       {/* FILTROS */}
       <ResponsiveRow>
@@ -205,13 +190,19 @@ export function Auditoria() {
 
             <ActionsRow>
               <Button
-                text="Limpar filtro"
+                text={<XIcon size={16} weight="bold" />}
                 type="button"
                 variant="secondary"
                 onClick={handleCancel}
                 style={{ padding: "8px 14px", borderRadius: 6 }}
               />
-              
+              <Button
+                text={<MagnifyingGlassIcon size={16} weight="bold" />}
+                type="button"
+                variant="danger"
+                onClick={() => setCurrentPage(1)} // reseta paginação ao filtrar
+                style={{ borderRadius: 6 }}
+              />
             </ActionsRow>
 
             {activeFilters.length > 0 && (
@@ -234,41 +225,19 @@ export function Auditoria() {
           <BoxInfo>
             <MiniGrid>
               <AuditStatCard>
-                <StatIconWrapper bgColor="#e0f2fe" iconColor="#0284c7">
-                  <div className="icon-box">
-                    <ListDashesIcon size={20} weight="bold" />
-                  </div>
-                  <h3>{logs.length}</h3>
-                </StatIconWrapper>
+                <h3>{logs.length}</h3>
                 <span>Total de Logs</span>
               </AuditStatCard>
               <AuditStatCard>
-                <StatIconWrapper bgColor="#d1fae5" iconColor="#16a34a">
-                  <div className="icon-box">
-                    <SignInIcon size={20} weight="bold" />
-                  </div>
-                  <h3>{Array.from(new Set(logs.filter(l => l.action === "Login").map(l => l.user))).length}</h3>
-                </StatIconWrapper>
+                <h3>{Array.from(new Set(logs.filter(l => l.action === "Login").map(l => l.user))).length}</h3>
                 <span>Logins Únicos</span>
               </AuditStatCard>
-
               <AuditStatCard>
-                <StatIconWrapper bgColor="#fef3c7" iconColor="#f59e0b">
-                  <div className="icon-box">
-                    <PencilSimpleIcon size={20} weight="bold" />
-                  </div>
-                  <h3>{logs.filter(l => l.action === "Edição").length}</h3>
-                </StatIconWrapper>
+                <h3>{logs.filter(l => l.action === "Edição").length}</h3>
                 <span>Modificações</span>
               </AuditStatCard>
-
               <AuditStatCard>
-                <StatIconWrapper bgColor="#fee2e2" iconColor="#dc2626">
-                  <div className="icon-box">
-                    <WarningCircleIcon size={20} weight="bold" />
-                  </div>
-                  <h3 style={{ color: "#dc2626" }}>{logs.filter(l => l.action === "Exclusão").length}</h3>
-                </StatIconWrapper>
+                <h3 style={{ color: "#dc2626" }}>{logs.filter(l => l.action === "Exclusão").length}</h3>
                 <span>Eventos Críticos</span>
               </AuditStatCard>
             </MiniGrid>
@@ -282,60 +251,60 @@ export function Auditoria() {
           <BoxInfo>
             <SectionTitle>Registros de Auditoria</SectionTitle>
             <TableWrapper>
-              <Table>
-                <thead>
-                  <tr>
-                    <th>Timestamp</th>
-                    <th>Usuário</th>
-                    <th>Ação</th>
-                    <th>Recurso</th>
-                    <th>IP</th>
-                    <th>Detalhes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedLogs.map((log) => (
-                    <Fragment key={log.id}>
-                      <tr
-                        onClick={() =>
-                          setExpandedRow(expandedRow === log.id ? null : log.id)
-                        }
-                        style={{ cursor: "pointer" }}
-                      >
-                        <td>{log.timestamp}</td>
-                        <td>{log.user}</td>
-                        <td>{log.action}</td>
-                        <td>{log.resource}</td>
-                        <td>{log.ip}</td>
-                        <td>{expandedRow === log.id ? "▲" : "▼"}</td>
+            <Table>
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Usuário</th>
+                  <th>Ação</th>
+                  <th>Recurso</th>
+                  <th>IP</th>
+                  <th>Detalhes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedLogs.map((log) => (
+                  <Fragment key={log.id}>
+                    <tr
+                      onClick={() =>
+                        setExpandedRow(expandedRow === log.id ? null : log.id)
+                      }
+                      style={{ cursor: "pointer" }}
+                    >
+                      <td>{log.timestamp}</td>
+                      <td>{log.user}</td>
+                      <td>{log.action}</td>
+                      <td>{log.resource}</td>
+                      <td>{log.ip}</td>
+                      <td>{expandedRow === log.id ? "▲" : "▼"}</td>
+                    </tr>
+                    {expandedRow === log.id && (
+                      <tr>
+                        <td colSpan={6}>
+                          <AuditDetailsBox>
+                            <p>
+                              <span className="campo">Campo alterado:</span>{" "}
+                              {log.details.campo}
+                            </p>
+                            <p>
+                              <span className="campo">Valor anterior:</span>{" "}
+                              {log.details.anterior} → <strong>{log.details.atual}</strong>
+                            </p>
+                            <p>
+                              <span className="campo">User Agent:</span> {log.details.userAgent}
+                            </p>
+                            <p>
+                              <span className="campo">Justificativa:</span>{" "}
+                              {log.details.justificativa}
+                            </p>
+                          </AuditDetailsBox>
+                        </td>
                       </tr>
-                      {expandedRow === log.id && (
-                        <tr>
-                          <td colSpan={6}>
-                            <AuditDetailsBox>
-                              <p>
-                                <span className="campo">Campo alterado:</span>{" "}
-                                {log.details.campo}
-                              </p>
-                              <p>
-                                <span className="campo">Valor anterior:</span>{" "}
-                                {log.details.anterior} → <strong>{log.details.atual}</strong>
-                              </p>
-                              <p>
-                                <span className="campo">User Agent:</span> {log.details.userAgent}
-                              </p>
-                              <p>
-                                <span className="campo">Justificativa:</span>{" "}
-                                {log.details.justificativa}
-                              </p>
-                            </AuditDetailsBox>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </Table>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </Table>
             </TableWrapper>
 
             {/* Paginação */}

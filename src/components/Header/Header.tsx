@@ -19,7 +19,7 @@ import {
   MobileSubmenu,
 } from "./Header.styles";
 import logoImg from "../../assets/logo.svg";
-import { GaugeIcon, ChartBarIcon, PlusIcon, FileTextIcon, UserPlusIcon, PencilSimpleIcon, ListIcon, XIcon, HouseSimpleIcon, UsersIcon } from "@phosphor-icons/react";
+import { PlusIcon, FileTextIcon, UserPlusIcon, PencilSimpleIcon, ListIcon, XIcon, HouseSimpleIcon, UsersIcon, ChartBarIcon } from "@phosphor-icons/react";
 import { UserDropdown } from "../UserDropdown/UserDropdown";
 import { NotificationsDropdown } from "../NotificationsDropdown/NotificationsDropdown";
 
@@ -34,9 +34,7 @@ export function Header() {
       to: "/dashboard",
       children: [
         { key: "home", label: "Início", to: "/dashboard", icon: <HouseSimpleIcon size={16} weight="bold" /> },
-        { key: "overview", label: "Visão Geral", to: "/dashboard/overview", icon: <GaugeIcon size={16} weight="bold" /> },
-        { key: "stats", label: "Estatísticas", to: "/dashboard/stats", icon: <ChartBarIcon size={16} weight="bold" /> },
-      ],
+              ],
     },
     {
       key: "ocorrencias",

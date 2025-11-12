@@ -6,19 +6,44 @@ export const Container = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 8px 24px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 5%;
+  height: 48px;
   z-index: 10;
 
+  /* Mobile */
+  @media (max-width: 768px) {
+    height: 40px;
+    padding: 6px 16px;
+  }
+
+  /* Mobile Small */
+  @media (max-width: 480px) {
+    height: 36px;
+    padding: 4px 12px;
+  }
 `;
 
 export const Logo = styled.img`
-  max-height: 50%;
+  width: 32px;
+  height: 32px;
   cursor: pointer;
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* Mobile Small */
+  @media (max-width: 480px) {
+    width: 24px;
+    height: 24px;
+  }
 `;
 
 export const Menu = styled.nav`

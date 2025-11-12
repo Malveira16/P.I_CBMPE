@@ -1,73 +1,156 @@
-# React + TypeScript + Vite
+# 🚒 **Projeto CHAMA — Sistema de Gestão de Ocorrências (CBMPE)**  
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> 💡 *Aplicação web e mobile desenvolvida para o Corpo de Bombeiros Militar de Pernambuco (CBMPE), com foco em eficiência, padronização e integração dos registros de ocorrência.*
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🌐 **Deploys**
 
-## React Compiler
+**Frontend (Web App):**  
+🔗 [Vercel](https://projetochama.vercel.app)  
+🔗 [Netlify](https://projetochama.vercel.app)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Backend (API):**  
+🧩 [Railway](https://backend-chama.up.railway.app/)
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 👥 **Equipe de Desenvolvimento**
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| Nome | Função |
+|------|---------|
+| João Victor Rodrigues Basante | Backend |
+| João Vitor Malveira da Silva | Full-Stack |
+| Maria Clara de Melo | Frontend |
+| Renato Trancoso Branco Delgado | Full-Stack |
+| Thayana Anália dos Santos Lira | Gestão de Projeto |
+| Vinicius Henrique Silva Nascimento | DBA |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🧭 **Visão Geral do Projeto**
+
+O **CHAMA** é um sistema integrado composto por:  
+- **Painel Web Administrativo** → gestão de ocorrências, usuários e relatórios.  
+- **App Mobile (PWA / React Native)** → registro em campo, modo offline e sincronização segura.  
+
+🎯 **Objetivo:**  
+Agilizar e padronizar o registro das ocorrências do CBMPE, reduzindo retrabalho e erros, e fornecendo dados confiáveis para estatísticas e planejamento estratégico.  
+
+📈 **Impacto esperado:**  
+- Redução do tempo de registro em campo  
+- Melhoria na precisão dos dados  
+- Dashboards integrados e relatórios automatizados  
+- Maior eficiência operacional e alinhamento à transformação digital do Governo de Pernambuco  
+
+---
+
+## 🧰 **Stack Tecnológica**
+
+| Camada | Tecnologias |
+|--------|--------------|
+| **Frontend** | React + TypeScript + styled-components |
+| **Backend** | Node.js + Express + TypeORM |
+| **Banco de Dados** | MySQL (Railway) |
+| **Deploy** | Vercel/Netlify (frontend) / Railway (backend) / Railway (banco de dados) |
+| **Design** | Figma + UX baseado em entrevistas com bombeiros |
+
+---
+
+## ⚙️ **Funcionalidades**
+
+### ✅ **Já Implementadas**
+- 🔐 Cadastro de usuário com perfis distintos (admin, analista, chefe)  
+- 🧾 Cadastro e listagem de ocorrências (com filtros e paginação)  
+- 🛰️ Integração completa com app mobile (GPS, câmera, assinatura digital)  
+- 📊 Dashboard operacional com KPIs e métricas  
+- 🕓 Tela de auditoria e logs  
+- 💾 Integração com API REST (Node + Express)  
+
+### 🧩 **Em Desenvolvimento / Planejadas**
+- 📄 Relatórios analíticos avançados  
+- 📤 Exportação (CSV, PDF, XLS)  
+- ♿ Acessibilidade e alto contraste  
+
+---
+
+## 🧪 **Como rodar localmente**
+
+1️⃣ **Clone o repositório**
+```bash
+git clone <url-do-repo>
+cd P.I_CBMPE
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+2️⃣ **Instale as dependências**
+```bash
+npm install
+# ou
+yarn
 ```
+
+3️⃣ **Configure o .env (opcional)**
+```env
+REACT_APP_API_BASE_URL=https://backend-chama.up.railway.app
+```
+
+4️⃣ **Execute o ambiente de desenvolvimento**
+```bash
+npm run dev
+```
+
+5️⃣ **Build de produção**
+```bash
+npm run build
+```
+
+---
+
+## 🧾 **Requisitos Chave**
+
+- 🔒 **Segurança:** Autenticação JWT + HTTPS/TLS  
+- 🌐 **Disponibilidade:** Sistema 24/7 com tolerância a falhas  
+- 📱 **Usabilidade:** Layout intuitivo e responsivo para campo e desktop  
+- ⚡ **Desempenho:** Suporte a até 500 ocorrências simultâneas  
+- 📊 **LGPD:** Trilhas de auditoria e proteção de dados sensíveis  
+
+---
+
+## 💬 **Insights da Pesquisa com Bombeiros**
+
+> “Hoje o militar precisa preencher a mesma ocorrência três vezes — no papel, no sistema e na planilha.”  
+> — *Pedro, CBMPE*
+
+> “As ferramentas gratuitas limitam o volume e a integração dos dados.”  
+> — *Major Aluísio, CBMPE*
+
+**Principais dores identificadas:**
+- Retrabalho e duplicidade de registros  
+- Falta de padronização e integração  
+- Limitações técnicas das ferramentas atuais  
+- Dificuldade para gerar relatórios consolidados  
+
+💡 **O CHAMA resolve isso** com integração direta entre app e painel, operação offline e dashboards consolidados.
+
+---
+
+## 🗓️ **Cronograma de Entregas (Resumo)**
+
+| Fase | Entrega | Componentes | Status |
+|------|----------|--------------|--------|
+| **M1** | 29/10/2025 | PWA funcional (formulário, offline, backend inicial) | ✅ |
+| **M2** | 03/12/2025 | App completo + CRUD backend + relatórios | 🔄 Em andamento |
+
+---
+
+## 📜 **Licença**
+
+> Consulte o arquivo `LICENSE` (se disponível) ou entre em contato com a equipe para definições de uso.
+
+---
+
+## 📬 **Contato**
+
+📧 **Professor Orientador:** Prof. Geraldo Gomes
+🏫 **Faculdade:** SENAC Pernambuco  
+👨‍💻 **Equipe CHAMA:** conforme listada acima  
